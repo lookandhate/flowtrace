@@ -1,45 +1,75 @@
 # Flow Trace for Go
 
-Плагин для GoLand 2026.3+: ПКМ на переменной, параметре, получателе или поле.
+<!-- Plugin description -->
+Flow Trace shows where a Go value comes from and where it goes, across function and constructor boundaries.
 
-- **Откуда пришло значение** — самые верхние источники (литералы, конструкторы, внешние вызовы) и цепочка через параметры, поля, `return` и вызовы через интерфейсы.
-- **Куда уходит значение** — через какие параметры, поля и методы проходит значение и где оно используется в итоге.
+Right-click a variable, parameter, method receiver, or struct field in a Go file and choose:
 
-Результат открывается в окне Flow Trace: дерево (источники с цепочками и полное дерево) и граф. Двойной щелчок переходит к коду. Горячие клавиши: `Ctrl+Alt+Shift+O` и `Ctrl+Alt+Shift+U`.
+- **Trace Value Origins** — the topmost sources of the value (literals, composite literals, constructors, calls into libraries) and the path that brings it to the variable: call arguments at every call site, assignments, struct fields, `return` statements, and calls through interfaces.
+- **Trace Value Destinations** — the parameters, constructors, struct fields, and method receivers the value passes through, and the places where it is finally used.
 
-## Сборка
+Results open in the Flow Trace tool window as a tree and a layered graph. Double-click any node to open the code.
 
-Нужна Java 25: GoLand 2026.3 собрана под неё. Подойдёт JBR из установленной GoLand:
+The analysis covers the code of the current project. Calls into the standard library and module dependencies are shown as external sources or end points.
+<!-- Plugin description end -->
+
+Shortcuts: `Ctrl+Alt+Shift+O` (origins) and `Ctrl+Alt+Shift+U` (destinations). The UI is in English; with the Russian language pack it is shown in Russian.
+
+## Limitations
+
+- The analysis does not distinguish instances: a struct field is one node for all objects, and a call through an interface leads to every implementation in the project.
+- Libraries (standard library, `go.mod` dependencies, repositories pulled in with `replace` unless opened as part of the project) are not entered.
+- Positional struct literals (`Store{cfg}`), parameters of anonymous functions, and values passed through channels, maps, and slices are not traced.
+- A trace stops at 400 nodes or depth 40; truncated nodes are marked.
+
+## Building
+
+The plugin targets GoLand 2026.3, which requires Java 25. The JBR bundled with GoLand works:
 
 ```
 export JAVA_HOME=~/Applications/GoLand.app/Contents/jbr/Contents/Home
 ./gradlew test buildPlugin verifyPlugin
 ```
 
-Если JDK 25 на машине нет, Gradle скачает её сам (foojay), но для запуска `./gradlew` всё равно нужна какая-нибудь Java в `JAVA_HOME`.
+If no JDK 25 is installed, Gradle provisions one through the foojay resolver, but `./gradlew` itself still needs some Java in `JAVA_HOME`.
 
-По умолчанию сборка скачивает GoLand версии `platformVersion` из `gradle.properties`. Чтобы собирать против установленной GoLand (быстрее и точно под вашу сборку), укажите путь в `~/.gradle/gradle.properties` — этот файл вне репозитория:
+By default the build downloads GoLand `platformVersion` from `gradle.properties`. To build against an installed GoLand instead (faster, matches your exact build), set the path in `~/.gradle/gradle.properties`, which is outside the repository:
 
 ```
 goLandPath=/Users/<you>/Applications/GoLand.app
 ```
 
-Архив: `build/distributions/flowtrace-<версия>.zip`. Установка: Settings → Plugins → ⚙ → Install Plugin from Disk.
+The archive is `build/distributions/flowtrace-<version>.zip`. Install it with Settings → Plugins → ⚙ → Install Plugin from Disk.
 
-## Устройство
+## Publishing
 
-Kotlin, IntelliJ Platform Gradle Plugin 2.x, версии зависимостей — в `gradle/libs.versions.toml`.
+Signing and publishing read their secrets from environment variables; nothing secret is stored in the repository.
 
-- `analysis` — анализ потока по PSI Go-плагина (`GoFlowAnalyzer`), выполняется в read action;
-- `model` — граф (`FlowGraph`, `FlowNode`, `FlowEdge`), после анализа PSI не нужен, узлы держат smart pointer;
-- `services/FlowTraceService` — project-сервис: `withBackgroundProgress` + `smartReadAction` в scope сервиса;
-- `actions` — пункты контекстного меню (обновление на BGT);
-- `ui` — окно Flow Trace: дерево и граф;
-- все тексты — в `messages/FlowTraceBundle.properties`.
+| Variable | Meaning |
+| --- | --- |
+| `CERTIFICATE_CHAIN` | PEM certificate chain (`chain.crt`) |
+| `PRIVATE_KEY` | PEM private key (`private.pem`) |
+| `PRIVATE_KEY_PASSWORD` | password of the private key |
+| `PUBLISH_TOKEN` | JetBrains Marketplace token from https://plugins.jetbrains.com/author/me/tokens |
 
-## Ограничения
+Create a key and a certificate once:
 
-- Анализ не различает экземпляры: поле структуры — один узел на все объекты, вызов через интерфейс ведёт во все реализации в проекте.
-- В библиотеки (stdlib, модули из `go.mod`, соседние репозитории через `replace`, если они не открыты как часть проекта) не заходит: такой вызов — внешний источник или конечная точка.
-- Не разбираются позиционные литералы структур (`Store{cfg}`), параметры анонимных функций и значения, прошедшие через каналы, map и срезы.
-- Лимит — 400 узлов и глубина 40; обрезанные узлы помечены.
+```
+openssl genpkey -aes-256-cbc -algorithm RSA -out private_encrypted.pem -pkeyopt rsa_keygen_bits:4096
+openssl rsa -in private_encrypted.pem -out private.pem
+openssl req -key private.pem -new -x509 -days 365 -out chain.crt
+```
+
+Then:
+
+```
+export CERTIFICATE_CHAIN="$(cat chain.crt)" PRIVATE_KEY="$(cat private.pem)" PRIVATE_KEY_PASSWORD=...
+./gradlew signPlugin verifyPluginSignature   # signed archive: build/distributions/flowtrace-<version>-signed.zip
+PUBLISH_TOKEN=... ./gradlew publishPlugin     # only after the first version was uploaded through the website
+```
+
+A version with a pre-release suffix (`0.4.0-beta.1`) is published to the matching channel (`beta`); a plain version goes to the default channel.
+
+## License
+
+[MIT](LICENSE)

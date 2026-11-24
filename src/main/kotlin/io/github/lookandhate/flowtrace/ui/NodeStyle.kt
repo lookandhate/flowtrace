@@ -1,11 +1,11 @@
-package dev.flowtrace.ui
+package io.github.lookandhate.flowtrace.ui
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.ui.JBColor
-import dev.flowtrace.model.FlowNode
-import dev.flowtrace.model.FlowNode.Kind
+import io.github.lookandhate.flowtrace.model.FlowNode
+import io.github.lookandhate.flowtrace.model.FlowNode.Kind
 import java.awt.Color
 import javax.swing.Icon
 

@@ -1,4 +1,4 @@
-package dev.flowtrace
+package io.github.lookandhate.flowtrace
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.Nls

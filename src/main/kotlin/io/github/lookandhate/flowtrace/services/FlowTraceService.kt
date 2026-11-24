@@ -1,4 +1,4 @@
-package dev.flowtrace.services
+package io.github.lookandhate.flowtrace.services
 
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.application.EDT
@@ -9,10 +9,10 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.psi.PsiFile
-import dev.flowtrace.FlowTraceBundle.message
-import dev.flowtrace.analysis.GoFlowAnalyzer
-import dev.flowtrace.model.Direction
-import dev.flowtrace.ui.FlowToolWindowFactory
+import io.github.lookandhate.flowtrace.FlowTraceBundle.message
+import io.github.lookandhate.flowtrace.analysis.GoFlowAnalyzer
+import io.github.lookandhate.flowtrace.model.Direction
+import io.github.lookandhate.flowtrace.ui.FlowToolWindowFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

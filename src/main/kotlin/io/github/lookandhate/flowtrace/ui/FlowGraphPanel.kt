@@ -1,15 +1,15 @@
-package dev.flowtrace.ui
+package io.github.lookandhate.flowtrace.ui
 
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.JBFont
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
-import dev.flowtrace.FlowTraceBundle.message
-import dev.flowtrace.model.Direction
-import dev.flowtrace.model.FlowEdge
-import dev.flowtrace.model.FlowGraph
-import dev.flowtrace.model.FlowNode
+import io.github.lookandhate.flowtrace.FlowTraceBundle.message
+import io.github.lookandhate.flowtrace.model.Direction
+import io.github.lookandhate.flowtrace.model.FlowEdge
+import io.github.lookandhate.flowtrace.model.FlowGraph
+import io.github.lookandhate.flowtrace.model.FlowNode
 import java.awt.BasicStroke
 import java.awt.Dimension
 import java.awt.FontMetrics

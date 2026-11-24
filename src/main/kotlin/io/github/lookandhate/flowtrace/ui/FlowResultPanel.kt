@@ -1,4 +1,4 @@
-package dev.flowtrace.ui
+package io.github.lookandhate.flowtrace.ui
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
@@ -11,10 +11,10 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
-import dev.flowtrace.FlowTraceBundle.message
-import dev.flowtrace.model.Direction
-import dev.flowtrace.model.FlowGraph
-import dev.flowtrace.model.FlowNode
+import io.github.lookandhate.flowtrace.FlowTraceBundle.message
+import io.github.lookandhate.flowtrace.model.Direction
+import io.github.lookandhate.flowtrace.model.FlowGraph
+import io.github.lookandhate.flowtrace.model.FlowNode
 import java.awt.BorderLayout
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent

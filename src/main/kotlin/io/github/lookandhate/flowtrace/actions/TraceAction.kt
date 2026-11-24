@@ -1,13 +1,13 @@
-package dev.flowtrace.actions
+package io.github.lookandhate.flowtrace.actions
 
 import com.goide.psi.GoFile
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import dev.flowtrace.analysis.GoFlowAnalyzer
-import dev.flowtrace.model.Direction
-import dev.flowtrace.services.FlowTraceService
+import io.github.lookandhate.flowtrace.analysis.GoFlowAnalyzer
+import io.github.lookandhate.flowtrace.model.Direction
+import io.github.lookandhate.flowtrace.services.FlowTraceService
 
 /**
  * Пункт контекстного меню редактора. Не DumbAware: поиск цели резолвит ссылки,

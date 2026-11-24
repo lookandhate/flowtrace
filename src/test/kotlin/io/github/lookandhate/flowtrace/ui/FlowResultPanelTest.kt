@@ -1,9 +1,9 @@
-package dev.flowtrace.ui
+package io.github.lookandhate.flowtrace.ui
 
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import dev.flowtrace.analysis.GoFlowAnalyzer
-import dev.flowtrace.model.Direction
+import io.github.lookandhate.flowtrace.analysis.GoFlowAnalyzer
+import io.github.lookandhate.flowtrace.model.Direction
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO

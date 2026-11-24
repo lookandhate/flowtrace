@@ -1,4 +1,4 @@
-package dev.flowtrace.model
+package io.github.lookandhate.flowtrace.model
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer

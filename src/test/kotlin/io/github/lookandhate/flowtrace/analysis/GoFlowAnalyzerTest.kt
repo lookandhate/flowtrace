@@ -1,8 +1,8 @@
-package dev.flowtrace.analysis
+package io.github.lookandhate.flowtrace.analysis
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import dev.flowtrace.model.Direction
-import dev.flowtrace.model.FlowGraph
+import io.github.lookandhate.flowtrace.model.Direction
+import io.github.lookandhate.flowtrace.model.FlowGraph
 
 class GoFlowAnalyzerTest : BasePlatformTestCase() {
 
@@ -41,8 +41,8 @@ class GoFlowAnalyzerTest : BasePlatformTestCase() {
             }
             """, Direction.BACKWARD,
         )
-        g.assertHas("поле Store.cfg", "параметр cfg", "переменная conf")
-        assertEquals(listOf("Config{Addr: \":80\"}  (значение)"), g.terminalTitles)
+        g.assertHas("field Store.cfg", "parameter cfg", "variable conf")
+        assertEquals(listOf("Config{Addr: \":80\"}  (value)"), g.terminalTitles)
     }
 
     fun `test origin through return and multi value`() {
@@ -64,8 +64,8 @@ class GoFlowAnalyzerTest : BasePlatformTestCase() {
             }
             """, Direction.BACKWARD,
         )
-        g.assertHas("результат open()", "переменная db")
-        assertEquals(listOf("DB{}  (значение)"), g.terminalTitles)
+        g.assertHas("result of open()", "variable db")
+        assertEquals(listOf("DB{}  (value)"), g.terminalTitles)
     }
 
     fun `test origin across assignments and many callers`() {
@@ -83,7 +83,7 @@ class GoFlowAnalyzerTest : BasePlatformTestCase() {
             }
             """, Direction.BACKWARD,
         )
-        assertEquals(listOf("1  (значение)", "2  (значение)", "3  (значение)"), g.terminalTitles)
+        assertEquals(listOf("1  (value)", "2  (value)", "3  (value)"), g.terminalTitles)
     }
 
     fun `test origin through interface receiver`() {
@@ -101,8 +101,8 @@ class GoFlowAnalyzerTest : BasePlatformTestCase() {
             func main() { start(&job{n: 1}) }
             """, Direction.BACKWARD,
         )
-        g.assertHas("параметр r")
-        assertEquals(listOf("job{n: 1}  (значение)"), g.terminalTitles)
+        g.assertHas("parameter r")
+        assertEquals(listOf("job{n: 1}  (value)"), g.terminalTitles)
     }
 
     fun `test sinks through layers`() {
@@ -129,10 +129,10 @@ class GoFlowAnalyzerTest : BasePlatformTestCase() {
             }
             """, Direction.FORWARD,
         )
-        g.assertHas("параметр log", "поле Repo.log", "получатель l")
+        g.assertHas("parameter log", "field Repo.log", "receiver l")
         // Сам log в svc не попадает: туда уходит *Repo, а log лежит в его поле.
-        assertFalse(g.nodes.any { it.title == "переменная svc" })
-        assertEquals(listOf("получатель l"), g.terminalTitles)
+        assertFalse(g.nodes.any { it.title == "variable svc" })
+        assertEquals(listOf("receiver l"), g.terminalTitles)
         // Цепочка проходит через метод, где поле читается и вызывается.
         val contexts = g.pathFromStart(g.terminals().single()).map { it.to.context }
         assertTrue(contexts.toString(), "(*Repo).Save" in contexts)
@@ -153,7 +153,7 @@ class GoFlowAnalyzerTest : BasePlatformTestCase() {
             func main() { loop(10) }
             """, Direction.BACKWARD,
         )
-        assertTrue(g.terminalTitles.toString(), "10  (значение)" in g.terminalTitles)
+        assertTrue(g.terminalTitles.toString(), "10  (value)" in g.terminalTitles)
     }
 
     fun `test variadic options do not take lone argument`() {
@@ -172,7 +172,7 @@ class GoFlowAnalyzerTest : BasePlatformTestCase() {
             }
             """, Direction.BACKWARD,
         )
-        assertFalse(g.nodes.toString(), g.nodes.any { it.title == "переменная conf" })
+        assertFalse(g.nodes.toString(), g.nodes.any { it.title == "variable conf" })
     }
 
     fun `test lone multi result argument spreads over parameters`() {
@@ -187,7 +187,7 @@ class GoFlowAnalyzerTest : BasePlatformTestCase() {
             func main() { use(pair()) }
             """, Direction.BACKWARD,
         )
-        assertEquals(listOf("\"b\"  (значение)"), g.terminalTitles)
+        assertEquals(listOf("\"b\"  (value)"), g.terminalTitles)
     }
 
     fun `test no target on keyword`() {

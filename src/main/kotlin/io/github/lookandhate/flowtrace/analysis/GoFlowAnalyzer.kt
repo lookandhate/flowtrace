@@ -1,4 +1,4 @@
-package dev.flowtrace.analysis
+package io.github.lookandhate.flowtrace.analysis
 
 import com.goide.go.GoSuperMethodSearch
 import com.goide.psi.GoArgumentList
@@ -46,12 +46,12 @@ import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.concurrency.annotations.RequiresReadLock
-import dev.flowtrace.FlowTraceBundle.message
-import dev.flowtrace.model.Direction
-import dev.flowtrace.model.FlowEdge
-import dev.flowtrace.model.FlowGraph
-import dev.flowtrace.model.FlowNode
-import dev.flowtrace.model.FlowNode.Kind
+import io.github.lookandhate.flowtrace.FlowTraceBundle.message
+import io.github.lookandhate.flowtrace.model.Direction
+import io.github.lookandhate.flowtrace.model.FlowEdge
+import io.github.lookandhate.flowtrace.model.FlowGraph
+import io.github.lookandhate.flowtrace.model.FlowNode
+import io.github.lookandhate.flowtrace.model.FlowNode.Kind
 
 /**
  * Межпроцедурный анализ потока значения в Go по PSI.

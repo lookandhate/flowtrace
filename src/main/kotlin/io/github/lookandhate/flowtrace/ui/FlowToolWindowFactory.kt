@@ -1,4 +1,4 @@
-package dev.flowtrace.ui
+package io.github.lookandhate.flowtrace.ui
 
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
@@ -8,9 +8,9 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.content.ContentFactory
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import dev.flowtrace.FlowTraceBundle.message
-import dev.flowtrace.model.Direction
-import dev.flowtrace.model.FlowGraph
+import io.github.lookandhate.flowtrace.FlowTraceBundle.message
+import io.github.lookandhate.flowtrace.model.Direction
+import io.github.lookandhate.flowtrace.model.FlowGraph
 import javax.swing.SwingConstants
 
 /** Окно Flow Trace: по вкладке на каждый запуск анализа. */

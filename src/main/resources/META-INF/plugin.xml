@@ -1,17 +1,9 @@
-<idea-plugin>
-    <id>dev.flowtrace</id>
+<idea-plugin url="https://github.com/lookandhate/flowtrace">
+    <id>io.github.lookandhate.flowtrace</id>
     <name>Flow Trace for Go</name>
-    <vendor>flowtrace</vendor>
-    <description><![CDATA[
-    <p>Go data flow tracing: where a value comes from and where it goes, across function and constructor boundaries.</p>
-    <p>Показывает, откуда пришло значение переменной и куда оно уходит, через границы функций и конструкторов.</p>
-    <ul>
-      <li>ПКМ на переменной, параметре, получателе или поле → <b>Откуда пришло значение</b>:
-          самые верхние присваивания (литералы, конструкторы, внешние вызовы) и цепочка вызовов до переменной.</li>
-      <li>ПКМ → <b>Куда уходит значение</b>: через какие параметры, поля и методы оно проходит и где используется в итоге.</li>
-    </ul>
-    <p>Результат — дерево и граф в окне Flow Trace, двойной щелчок переходит к коду.</p>
-    ]]></description>
+    <vendor url="https://github.com/lookandhate">lookandhate</vendor>
+
+    <!-- description и change-notes подставляются из README.md и CHANGELOG.md при сборке (build.gradle.kts). -->
 
     <depends>com.intellij.modules.lang</depends>
     <depends>org.jetbrains.plugins.go</depends>
@@ -23,16 +15,16 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="FlowTrace" anchor="bottom" icon="AllIcons.Toolwindows.ToolWindowHierarchy"
-                    factoryClass="dev.flowtrace.ui.FlowToolWindowFactory" canCloseContents="true"/>
+                    factoryClass="io.github.lookandhate.flowtrace.ui.FlowToolWindowFactory" canCloseContents="true"/>
     </extensions>
 
     <actions>
         <group id="FlowTrace.EditorGroup">
             <separator/>
-            <action id="FlowTrace.Origins" class="dev.flowtrace.actions.TraceOriginsAction">
+            <action id="FlowTrace.Origins" class="io.github.lookandhate.flowtrace.actions.TraceOriginsAction">
                 <keyboard-shortcut keymap="$default" first-keystroke="control alt shift O"/>
             </action>
-            <action id="FlowTrace.Sinks" class="dev.flowtrace.actions.TraceSinksAction">
+            <action id="FlowTrace.Sinks" class="io.github.lookandhate.flowtrace.actions.TraceSinksAction">
                 <keyboard-shortcut keymap="$default" first-keystroke="control alt shift U"/>
             </action>
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>

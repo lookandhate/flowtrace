@@ -1,4 +1,4 @@
-package dev.flowtrace.analysis
+package io.github.lookandhate.flowtrace.analysis
 
 import com.goide.psi.GoCallExpr
 import com.goide.psi.GoConversionExpr
@@ -26,7 +26,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
-import dev.flowtrace.FlowTraceBundle.message
+import io.github.lookandhate.flowtrace.FlowTraceBundle.message
 
 /** Элементы, за которыми следит анализ: переменная, параметр, получатель, поле. */
 internal fun PsiElement?.isTracked(): Boolean =
