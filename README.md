@@ -13,6 +13,10 @@ Results open in the Flow Trace tool window. The tree looks like IntelliJ's Dataf
 The analysis covers the code of the current project. Calls into the standard library and module dependencies are shown as external sources or end points.
 <!-- Plugin description end -->
 
+![Trace Value Destinations](docs/screenshots/flowtrace-destinations.png)
+
+![Trace Value Origins](docs/screenshots/flowtrace-origins.png)
+
 Shortcuts: `Ctrl+Alt+Shift+O` (origins) and `Ctrl+Alt+Shift+U` (destinations). The UI is in English; with the Russian language pack it is shown in Russian.
 
 ## Limitations

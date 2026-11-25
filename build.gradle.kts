@@ -121,4 +121,6 @@ tasks.verifyPluginSignature {
 tasks.test {
     // Каталог для PNG графа из FlowResultPanelTest: ./gradlew test -Pflowtrace.png.dir=/путь
     providers.gradleProperty("flowtrace.png.dir").orNull?.let { systemProperty("flowtrace.png.dir", it) }
+    // Скриншоты для Marketplace: ./gradlew test --tests '*MarketplaceScreenshots*' -Pflowtrace.screenshots.dir=/путь
+    providers.gradleProperty("flowtrace.screenshots.dir").orNull?.let { systemProperty("flowtrace.screenshots.dir", it) }
 }
