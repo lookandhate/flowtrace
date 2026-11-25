@@ -32,6 +32,8 @@ import kotlin.math.sin
  */
 internal class FlowGraphPanel(
     private val graph: FlowGraph,
+    /** Узлы, оставшиеся после фильтра по типам. */
+    private val visible: Set<FlowNode>,
     private val onSelect: (FlowNode) -> Unit,
     private val onOpen: (FlowNode) -> Unit,
 ) : JPanel() {
@@ -71,7 +73,7 @@ internal class FlowGraphPanel(
         return buildString {
             append("<html><b>${esc(n.title)}</b><br>${esc(n.context)} · ${esc(n.location)}")
             append("<br><code>${esc(n.snippet)}</code>")
-            n.incoming.forEach { append("<br>← ${esc(it.label)}: ${esc(it.from.title)}") }
+            n.incoming.filter { it.from in visible }.forEach { append("<br>← ${esc(it.label)}: ${esc(it.from.title)}") }
             if (n.isTruncated) append("<br><i>${message("graph.tooltip.truncated")}</i>")
             append("<br><i>${message("graph.tooltip.open")}</i></html>")
         }
@@ -80,14 +82,15 @@ internal class FlowGraphPanel(
     // ---------------------------------------------------------------- раскладка
 
     private fun layoutGraph() {
-        val dist = graph.layers()
+        val dist = graph.layers(visible)
         val maxDist = dist.values.maxOrNull() ?: 0
         val backward = graph.direction == Direction.BACKWARD
-        for (n in graph.nodes) {
+        val shown = graph.nodes.filter { it in visible }
+        for (n in shown) {
             val d = dist[n] ?: maxDist
             layerOf[n] = if (backward) maxDist - d else d
         }
-        val layers = graph.nodes.groupBy { layerOf.getValue(it) }
+        val layers = shown.groupBy { layerOf.getValue(it) }
         val layerCount = (layers.keys.maxOrNull() ?: 0) + 1
 
         val tfm = getFontMetrics(titleFont)
@@ -95,7 +98,7 @@ internal class FlowGraphPanel(
         val pad = PAD.get()
         val gap = H_GAP.get()
         val nodeHeight = tfm.height + sfm.height + 2 * pad
-        val widths = graph.nodes.associateWith {
+        val widths = shown.associateWith {
             minOf(maxOf(tfm.stringWidth(it.title), sfm.stringWidth(it.subtitle)) + 2 * pad + JBUI.scale(4), MAX_WIDTH.get())
         }
 
@@ -138,7 +141,11 @@ internal class FlowGraphPanel(
         try {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
-            graph.nodes.forEach { n -> n.outgoing.forEach { paintEdge(g, it) } }
+            // Между парой узлов может быть несколько рёбер (по одному на место в коде) — рисуем одну линию.
+            val drawn = HashSet<Pair<FlowNode, FlowNode>>()
+            for (n in graph.nodes) for (e in n.outgoing) {
+                if (e.from != e.to && drawn.add(e.from to e.to)) paintEdge(g, e)
+            }
             bounds.forEach { (n, r) -> paintNode(g, n, r) }
         } finally {
             g.dispose()

@@ -1,7 +1,18 @@
 package io.github.lookandhate.flowtrace.ui
 
+import com.intellij.ide.CommonActionsManager
+import com.intellij.ide.DefaultTreeExpander
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
+import com.intellij.icons.AllIcons
+import com.intellij.ui.AutoScrollToSourceHandler
 import com.intellij.ui.ColoredTreeCellRenderer
 import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.JBSplitter
@@ -14,6 +25,7 @@ import com.intellij.util.ui.tree.TreeUtil
 import io.github.lookandhate.flowtrace.FlowTraceBundle.message
 import io.github.lookandhate.flowtrace.model.Direction
 import io.github.lookandhate.flowtrace.model.FlowGraph
+import io.github.lookandhate.flowtrace.model.FlowKind
 import io.github.lookandhate.flowtrace.model.FlowNode
 import java.awt.BorderLayout
 import java.awt.event.KeyAdapter
@@ -24,127 +36,223 @@ import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 
-/** Результат одного анализа: дерево слева, граф справа. */
+/**
+ * Результат одного анализа: дерево в стиле Dataflow слева, граф справа, панель инструментов сбоку.
+ * Прямые использования выбранного элемента группируются и фильтруются по типам.
+ */
 internal class FlowResultPanel(private val project: Project, private val graph: FlowGraph) :
     JPanel(BorderLayout()), Disposable {
 
-    /** Строка дерева: узел графа, подпись ребра, по которому в него пришли, и номер в цепочке. */
-    private data class Item(val node: FlowNode, val via: String? = null, val number: Int = 0)
-
     private val backward = graph.direction == Direction.BACKWARD
-    private var treeBudget = MAX_TREE_NODES
-    internal val tree: Tree
-    internal val graphPanel: FlowGraphPanel
+    private val firstLevelKinds = graph.firstLevelKinds()
+
+    /** Показываемые типы прямых использований. */
+    internal var kinds: Set<FlowKind> = firstLevelKinds.keys
+        set(value) {
+            field = value
+            rebuild()
+        }
+
+    internal var groupByKind: Boolean = true
+        set(value) {
+            field = value
+            rebuild()
+        }
+
+    private var showGraph: Boolean = true
+        set(value) {
+            field = value
+            splitter.secondComponent = if (value) graphScroll else null
+        }
+
+    private val header = JBLabel().apply { border = JBUI.Borders.empty(4, 8) }
+    private val codeRenderer = CodeLineRenderer(project)
+    internal val tree = Tree(DefaultTreeModel(DefaultMutableTreeNode())).apply {
+        isRootVisible = false
+        showsRootHandles = true
+        cellRenderer = Renderer()
+    }
+    internal var graphPanel: FlowGraphPanel = createGraphPanel(graph.nodes.toSet())
+        private set
+    private val graphScroll = ScrollPaneFactory.createScrollPane(graphPanel, true)
+    private val splitter = JBSplitter(false, 0.55f).apply {
+        firstComponent = ScrollPaneFactory.createScrollPane(tree, true)
+        secondComponent = graphScroll
+    }
 
     init {
-        val terminals = graph.terminals()
-        val summary = message(
-            if (backward) "summary.backward" else "summary.forward",
-            graph.start.title, terminals.size.toString(), graph.nodes.size.toString(),
-        ) + if (graph.truncated) message("summary.truncated") else ""
-        add(JBLabel(summary).apply { border = JBUI.Borders.empty(4, 8) }, BorderLayout.NORTH)
-
-        graphPanel = FlowGraphPanel(
-            graph,
-            onSelect = { it.navigate(project, focus = false) },
-            onOpen = { it.navigate(project, focus = true) },
-        )
-        tree = Tree(DefaultTreeModel(buildTree(terminals))).apply {
-            isRootVisible = false
-            showsRootHandles = true
-            cellRenderer = Renderer()
-            addTreeSelectionListener { nodeOf(lastSelectedPathComponent)?.let(graphPanel::select) }
-            addKeyListener(object : KeyAdapter() {
-                override fun keyPressed(e: KeyEvent) {
-                    if (e.keyCode == KeyEvent.VK_ENTER) nodeOf(lastSelectedPathComponent)?.navigate(project, focus = true)
-                }
-            })
+        tree.addTreeSelectionListener {
+            rowOf(tree.lastSelectedPathComponent)?.let { row -> nodeFor(row)?.let(graphPanel::select) }
         }
+        tree.addKeyListener(object : KeyAdapter() {
+            override fun keyPressed(e: KeyEvent) {
+                if (e.keyCode == KeyEvent.VK_ENTER) codeOf(tree.lastSelectedPathComponent)?.navigate(project, focus = true)
+            }
+        })
         object : DoubleClickListener() {
             override fun onDoubleClick(event: MouseEvent): Boolean {
-                val node = tree.getPathForLocation(event.x, event.y)?.lastPathComponent?.let(::nodeOf) ?: return false
-                node.navigate(project, focus = true)
+                val path = tree.getPathForLocation(event.x, event.y) ?: return false
+                val code = codeOf(path.lastPathComponent) ?: return false
+                code.navigate(project, focus = true)
                 return true
             }
         }.installOn(tree)
-        TreeUtil.expand(tree, 1)
 
-        add(JBSplitter(false, 0.38f).apply {
-            firstComponent = ScrollPaneFactory.createScrollPane(tree, true)
-            secondComponent = ScrollPaneFactory.createScrollPane(graphPanel, true)
-        }, BorderLayout.CENTER)
+        val autoScroll = object : AutoScrollToSourceHandler() {
+            override fun isAutoScrollMode() = PropertiesComponent.getInstance(project).getBoolean(AUTOSCROLL_KEY, true)
+            override fun setAutoScrollMode(state: Boolean) =
+                PropertiesComponent.getInstance(project).setValue(AUTOSCROLL_KEY, state, true)
+
+            override fun scrollToSource(tree: java.awt.Component) {
+                codeOf((tree as JTree).lastSelectedPathComponent)?.navigate(project, focus = false)
+            }
+        }
+        autoScroll.install(tree)
+
+        val toolbar = ActionManager.getInstance().createActionToolbar(TOOLBAR_PLACE, createActions(autoScroll), false)
+        toolbar.targetComponent = tree
+
+        add(header, BorderLayout.NORTH)
+        add(toolbar.component, BorderLayout.WEST)
+        add(splitter, BorderLayout.CENTER)
+        rebuild()
     }
 
-    private fun buildTree(terminals: List<FlowNode>): DefaultMutableTreeNode {
+    private fun createActions(autoScroll: AutoScrollToSourceHandler): DefaultActionGroup {
+        val expander = DefaultTreeExpander(tree)
+        val actions = CommonActionsManager.getInstance()
+        return DefaultActionGroup().apply {
+            add(GroupByKindAction())
+            add(KindFilterGroup())
+            addSeparator()
+            add(actions.createExpandAllAction(expander, tree))
+            add(actions.createCollapseAllAction(expander, tree))
+            add(autoScroll.createToggleAction())
+            addSeparator()
+            add(ShowGraphAction())
+        }
+    }
+
+    private fun rebuild() {
+        val visible = graph.reachableVia(kinds)
+        val builder = TraceTreeBuilder(graph, kinds, groupByKind, message("tree.cycle"), message("tree.truncated"))
         val root = DefaultMutableTreeNode()
+        val trace = builder.buildTrace()
+        root.add(trace)
+        root.add(builder.buildTerminals({ n ->
+            message(if (backward) "tree.terminals.backward" else "tree.terminals.forward", n.toString())
+        }, visible))
+        tree.model = DefaultTreeModel(root)
+        TreeUtil.expand(tree, if (groupByKind) 3 else 2)
 
-        val ends = DefaultMutableTreeNode(
-            message(if (backward) "tree.terminals.backward" else "tree.terminals.forward", terminals.size.toString())
-        )
-        root.add(ends)
-        for (terminal in terminals) {
-            val terminalNode = DefaultMutableTreeNode(Item(terminal))
-            ends.add(terminalNode)
-            // Цепочка в порядке движения данных: от источника к переменной или от переменной к месту использования.
-            val path = graph.pathFromStart(terminal).let { if (backward) it.asReversed() else it }
-            val first = if (backward) terminal else graph.start
-            val chain = listOf(Item(first, number = 1)) +
-                path.mapIndexed { i, e -> Item(e.to, e.label, i + 2) }
-            chain.forEach { terminalNode.add(DefaultMutableTreeNode(it)) }
-        }
+        val shown = graph.next(graph.start).count { it.kind in kinds }
+        header.text = message(
+            if (backward) "summary.backward" else "summary.forward",
+            graph.start.title, shown.toString(), graph.terminals(visible).size.toString(),
+        ) + if (graph.truncated) message("summary.truncated") else ""
 
-        val full = DefaultMutableTreeNode(message(if (backward) "tree.full.backward" else "tree.full.forward"))
-        root.add(full)
-        val startNode = DefaultMutableTreeNode(Item(graph.start))
-        full.add(startNode)
-        addChildren(startNode, graph.start, hashSetOf(graph.start))
-        return root
+        graphPanel = createGraphPanel(visible)
+        graphScroll.setViewportView(graphPanel)
     }
 
-    private fun addChildren(parent: DefaultMutableTreeNode, node: FlowNode, onPath: MutableSet<FlowNode>) {
-        for (edge in graph.next(node)) {
-            if (--treeBudget < 0) {
-                parent.add(DefaultMutableTreeNode(message("tree.truncated")))
-                return
-            }
-            val child = graph.ahead(edge)
-            val childNode = DefaultMutableTreeNode(Item(child, edge.label))
-            parent.add(childNode)
-            if (onPath.add(child)) {
-                addChildren(childNode, child, onPath)
-                onPath.remove(child)
-            } else {
-                childNode.add(DefaultMutableTreeNode(message("tree.cycle")))
-            }
-        }
+    private fun createGraphPanel(visible: Set<FlowNode>) = FlowGraphPanel(
+        graph, visible,
+        onSelect = { it.navigate(project, focus = false) },
+        onOpen = { it.navigate(project, focus = true) },
+    )
+
+    /** Узел графа для строки: для строки-места — куда ведёт ребро. */
+    private fun nodeFor(row: Row): FlowNode? = when (row) {
+        is CodeRow -> row.node ?: row.edge?.let(graph::ahead)
+        else -> null
     }
 
     override fun dispose() = Unit
 
-    private class Renderer : ColoredTreeCellRenderer() {
+    // ---------------------------------------------------------------- действия
+
+    private inner class GroupByKindAction : DumbAwareToggleAction(
+        message("action.group.by.kind"), null, AllIcons.Actions.GroupBy,
+    ) {
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
+        override fun isSelected(e: AnActionEvent) = groupByKind
+        override fun setSelected(e: AnActionEvent, state: Boolean) {
+            groupByKind = state
+        }
+    }
+
+    private inner class ShowGraphAction : DumbAwareToggleAction(
+        message("action.show.graph"), null, AllIcons.Actions.PreviewDetails,
+    ) {
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
+        override fun isSelected(e: AnActionEvent) = showGraph
+        override fun setSelected(e: AnActionEvent, state: Boolean) {
+            showGraph = state
+        }
+    }
+
+    /** Выпадающий список типов прямых использований с числом каждого. */
+    private inner class KindFilterGroup : DefaultActionGroup(message("action.filter.kinds"), true) {
+        init {
+            templatePresentation.icon = AllIcons.General.Filter
+            add(object : DumbAwareAction(message("action.filter.all")) {
+                override fun getActionUpdateThread() = ActionUpdateThread.EDT
+                override fun actionPerformed(e: AnActionEvent) {
+                    kinds = firstLevelKinds.keys
+                }
+            })
+            addSeparator()
+            firstLevelKinds.forEach { (kind, count) -> add(KindToggle(kind, count)) }
+        }
+
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
+    }
+
+    private inner class KindToggle(private val kind: FlowKind, count: Int) : DumbAwareToggleAction(
+        message("kind.with.count", message(kind.messageKey), count.toString()), null, NodeStyle.icon(kind),
+    ) {
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
+        override fun isSelected(e: AnActionEvent) = kind in kinds
+        override fun setSelected(e: AnActionEvent, state: Boolean) {
+            kinds = if (state) kinds + kind else kinds - kind
+        }
+    }
+
+    // ---------------------------------------------------------------- отрисовка строк
+
+    private inner class Renderer : ColoredTreeCellRenderer() {
         override fun customizeCellRenderer(
             tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean,
         ) {
-            val item = (value as? DefaultMutableTreeNode)?.userObject as? Item
-            if (item == null) {
-                append((value as? DefaultMutableTreeNode)?.userObject?.toString() ?: "", SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
-                return
+            when (val r = rowOf(value)) {
+                is CodeRow -> renderCode(r, selected)
+                is KindRow -> {
+                    icon = NodeStyle.icon(r.kind)
+                    append(message(r.kind.messageKey), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
+                    append("  ${r.count}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                }
+                is SectionRow -> append(r.text, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
+                is NoteRow -> append(r.text, SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES)
+                null -> Unit
             }
-            val n = item.node
-            icon = NodeStyle.icon(n)
-            if (item.number > 0) append("${item.number}. ", SimpleTextAttributes.GRAYED_ATTRIBUTES)
-            item.via?.let { append("[$it] ", SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES) }
-            val emphasized = n.isStart || n.kind == FlowNode.Kind.ORIGIN || n.kind == FlowNode.Kind.EXTERNAL
-            append(n.title, if (emphasized) SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES else SimpleTextAttributes.REGULAR_ATTRIBUTES)
-            append("  ${n.context} · ${n.location}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
-            if (n.isTruncated) append(message("node.truncated"), SimpleTextAttributes.ERROR_ATTRIBUTES)
-            toolTipText = n.snippet
+        }
+
+        private fun renderCode(r: CodeRow, selected: Boolean) {
+            append("${r.code.line}  ", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+            codeRenderer.render(this, r.code, selected)
+            append("  " + message("row.in", r.code.context), SimpleTextAttributes.GRAYED_ATTRIBUTES)
+            val node = r.node
+            if (node != null && node.isTruncated) append(message("node.truncated"), SimpleTextAttributes.ERROR_ATTRIBUTES)
+            toolTipText = listOfNotNull(r.edge?.label, node?.title, r.code.location).joinToString(" · ")
         }
     }
 
     private companion object {
-        const val MAX_TREE_NODES = 3000
+        const val TOOLBAR_PLACE = "FlowTrace.Toolbar"
+        const val AUTOSCROLL_KEY = "flowtrace.autoscroll"
 
-        fun nodeOf(treeNode: Any?): FlowNode? = ((treeNode as? DefaultMutableTreeNode)?.userObject as? Item)?.node
+        fun rowOf(treeNode: Any?): Row? = (treeNode as? DefaultMutableTreeNode)?.userObject as? Row
+
+        fun codeOf(treeNode: Any?) = (rowOf(treeNode) as? CodeRow)?.code
     }
 }

@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.4.0]
+
+- Every use of the traced value is a separate row with its kind: assignments, call arguments, returns, method calls, struct fields, reassignments of the variable, declarations, other uses.
+- Direct uses are grouped by kind and can be filtered to chosen kinds; the subtree of each kept use stays complete.
+- Dataflow-style tree: line number, the code line with syntax highlighting and the traced occurrence in bold, and the enclosing function.
+- Reassignments are found in all forms: `x = …`, `x += …`, `x++` and redeclaration `a, x := …`.
+- Two calls with the same argument are now two rows instead of one.
+- Toolbar: group by kind, kind filter, expand and collapse all, autoscroll to source, show or hide the graph.
+
 ## [0.3.0]
 
 First public release.

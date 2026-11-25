@@ -8,7 +8,7 @@ Right-click a variable, parameter, method receiver, or struct field in a Go file
 - **Trace Value Origins** — the topmost sources of the value (literals, composite literals, constructors, calls into libraries) and the path that brings it to the variable: call arguments at every call site, assignments, struct fields, `return` statements, and calls through interfaces.
 - **Trace Value Destinations** — the parameters, constructors, struct fields, and method receivers the value passes through, and the places where it is finally used.
 
-Results open in the Flow Trace tool window as a tree and a layered graph. Double-click any node to open the code.
+Results open in the Flow Trace tool window. The tree looks like IntelliJ's Dataflow view: each row is a code line with its number, the traced occurrence in bold, and the enclosing function. Direct uses are grouped by kind — assignments, call arguments, returns, method calls, struct fields, reassignments, and other uses — and you can show only the kinds you need. A layered graph is shown next to the tree. Double-click any row or node to open the code.
 
 The analysis covers the code of the current project. Calls into the standard library and module dependencies are shown as external sources or end points.
 <!-- Plugin description end -->
@@ -21,6 +21,7 @@ Shortcuts: `Ctrl+Alt+Shift+O` (origins) and `Ctrl+Alt+Shift+U` (destinations). T
 - Libraries (standard library, `go.mod` dependencies, repositories pulled in with `replace` unless opened as part of the project) are not entered.
 - Positional struct literals (`Store{cfg}`), parameters of anonymous functions, and values passed through channels, maps, and slices are not traced.
 - A trace stops at 400 nodes or depth 40; truncated nodes are marked.
+- The analysis is flow-insensitive within a function: after `x = other`, later uses of `x` are still listed as uses of the original value.
 
 ## Building
 

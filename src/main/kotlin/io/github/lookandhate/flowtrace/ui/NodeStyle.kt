@@ -4,6 +4,8 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.ui.JBColor
+import io.github.lookandhate.flowtrace.model.CodeLine
+import io.github.lookandhate.flowtrace.model.FlowKind
 import io.github.lookandhate.flowtrace.model.FlowNode
 import io.github.lookandhate.flowtrace.model.FlowNode.Kind
 import java.awt.Color
@@ -36,12 +38,25 @@ internal object NodeStyle {
         Kind.EXTERNAL -> AllIcons.Nodes.PpLib
         Kind.SINK -> AllIcons.Nodes.Method
     }
+
+    fun icon(kind: FlowKind): Icon = when (kind) {
+        FlowKind.ASSIGNMENT -> AllIcons.Nodes.Variable
+        FlowKind.ARGUMENT -> AllIcons.Nodes.Parameter
+        FlowKind.RETURN -> AllIcons.Actions.StepOut
+        FlowKind.METHOD_CALL -> AllIcons.Nodes.Method
+        FlowKind.FIELD -> AllIcons.Nodes.Field
+        FlowKind.WRITE -> AllIcons.Actions.Edit
+        FlowKind.DECLARATION -> AllIcons.Nodes.Class
+        FlowKind.OTHER -> AllIcons.General.Information
+    }
 }
 
-/** Открывает код узла. Узел хранит smart pointer, поэтому переход работает и после правок файла. */
-internal fun FlowNode.navigate(project: Project, focus: Boolean) {
+/** Открывает строку кода. Smart pointer переживает правки файла. */
+internal fun CodeLine.navigate(project: Project, focus: Boolean) {
     val ptr = pointer ?: return
     val file = ptr.virtualFile ?: return
     val element = ptr.element ?: return
     OpenFileDescriptor(project, file, element.textOffset).navigate(focus)
 }
+
+internal fun FlowNode.navigate(project: Project, focus: Boolean) = code.navigate(project, focus)

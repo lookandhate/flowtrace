@@ -21,8 +21,6 @@ import com.goide.psi.GoSignatureOwner
 import com.goide.psi.GoTypeSpec
 import com.goide.psi.GoUnaryExpr
 import com.goide.psi.GoVarDefinition
-import com.intellij.openapi.util.text.StringUtil
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
@@ -108,15 +106,6 @@ internal fun contextOf(e: PsiElement): String {
     if (owner != null) return functionName(owner)
     e.parentOfType<GoTypeSpec>()?.let { return message("context.type", it.name ?: "?") }
     return (e.containingFile as? GoFile)?.let { message("context.package", it.packageName ?: "?") } ?: ""
-}
-
-internal fun locationOf(e: PsiElement): String {
-    val file = e.containingFile ?: return ""
-    val offset = e.textOffset
-    val doc = PsiDocumentManager.getInstance(file.project).getDocument(file)
-    val line = if (doc != null && offset <= doc.textLength) doc.getLineNumber(offset) + 1
-    else StringUtil.offsetToLineNumber(file.text, offset) + 1
-    return "${file.name}:$line"
 }
 
 internal fun snippetOf(e: PsiElement): String {

@@ -1,7 +1,7 @@
 <idea-plugin url="https://github.com/lookandhate/flowtrace">
     <id>io.github.lookandhate.flowtrace</id>
     <name>Flow Trace for Go</name>
-    <vendor url="https://github.com/lookandhate">lookandhate</vendor>
+    <vendor url="https://github.com/lookandhate" email="36508332+lookandhate@users.noreply.github.com">lookandhate</vendor>
 
     <!-- description и change-notes подставляются из README.md и CHANGELOG.md при сборке (build.gradle.kts). -->
 
